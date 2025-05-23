@@ -4,54 +4,62 @@ from bson.objectid import ObjectId
 from bson.json_util import dumps
 import datetime
 from flask_cors import CORS
+import jwt  
+import hashlib
+import os
 
 app = Flask(__name__)
-CORS(app) 
+CORS(app)
 
-# MongoDB configuration - adjust URI as needed
 app.config["MONGO_URI"] = "mongodb://localhost:27017/emotional_diary_db"
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "supersecretkey")
 mongo = PyMongo(app)
 entries_collection = mongo.db.entries
+users_collection = mongo.db.users
 
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
 
-def entry_to_json(entry):
-    
-    return {
-        "_id": str(entry["_id"]),
-        "date": entry["date"],
-        "content": entry["content"],
-        "emotions": entry["emotions"]
-    }
+def generate_token(user_id, username):
+    token = jwt.encode({"user_id": str(user_id), "username": username}, app.config["SECRET_KEY"], algorithm="HS256")
+    # PyJWT >= 2.x returns str, <2.x returns bytes
+    if isinstance(token, bytes):
+        token = token.decode("utf-8")
+    return token
 
-@app.route("/entries", methods=["POST"])
-def create_entry():
-    data = request.get_json()
-    if not data or "date" not in data or "content" not in data:
-        return jsonify({"error": "Missing required fields: date, content"}), 400
-
-    date = data["date"]
-    # Validate date format
+def decode_token(token):
     try:
-        datetime.datetime.strptime(date, "%Y-%m-%d")
-    except ValueError:
-        return jsonify({"error": "Date must be in YYYY-MM-DD format"}), 400
+        return jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
+    except Exception:
+        return None
 
-    content = data["content"]
-    emotions = data.get("emotions", [])
-    if not isinstance(emotions, list):
-        return jsonify({"error": "Emotions must be a list of strings"}), 400
-
-    entry = {
-        "date": date,
-        "content": content,
-        "emotions": emotions
+@app.route("/register", methods=["POST"])
+def register():
+    data = request.get_json()
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+    if not username or not password:
+        return jsonify({"error": "Username and password required"}), 400
+    if users_collection.find_one({"username": username}):
+        return jsonify({"error": "Username already exists"}), 400
+    user = {
+        "username": username,
+        "password": hash_password(password)
     }
-    result = entries_collection.insert_one(entry)
-    new_entry = entries_collection.find_one({"_id": result.inserted_id})
-    return jsonify(entry_to_json(new_entry)), 201
-@app.route("/")
-def home():
-    return jsonify({"message": "Welcome to the Emotional Diary API"}), 200
+    result = users_collection.insert_one(user)
+    return jsonify({"message": "User registered"}), 201
 
-if __name__ == "__main__":
-    app.run(debug=True)
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+    user = users_collection.find_one({"username": username})
+    if not user or user["password"] != hash_password(password):
+        return jsonify({"error": "Invalid username or password"}), 401
+    token = generate_token(user["_id"], username)
+    return jsonify({
+        "token": token,
+        "username": username,
+        "user_id": str(user["_id"])
+    }), 200
