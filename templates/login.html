@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login - Emotional Diary</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .login-container {
+      max-width: 400px;
+      margin: 60px auto;
+      background: #f6fff8;
+      border-radius: 14px;
+      box-shadow: 0 4px 16px rgba(50, 150, 100, 0.13);
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      align-items: stretch;
+    }
+    .login-container h2 {
+      text-align: center;
+      color: #3d8361;
+      margin-bottom: 10px;
+    }
+    .login-container label {
+      font-weight: 600;
+      color: #2f5331;
+      margin-bottom: 6px;
+    }
+    .login-container input[type="text"],
+    .login-container input[type="password"] {
+      width: 100%;
+      font-size: 1rem;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 2px solid #a5cca8;
+      background: #fefefc;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+    .login-container button {
+      background: #3c7d36;
+      color: white;
+      padding: 10px 0;
+      border-radius: 22px;
+      border: none;
+      font-weight: 600;
+      font-size: 1.1rem;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .login-container button:hover {
+      background: #2c5a23;
+    }
+    .login-container .switch-link {
+      color: #3d8361;
+      text-align: center;
+      cursor: pointer;
+      text-decoration: underline;
+      margin-top: 10px;
+      font-size: 0.98rem;
+    }
+    .login-container .message {
+      text-align: center;
+      font-weight: 600;
+      color: #d33;
+      min-height: 1.2em;
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h2 id="loginTitle">Login</h2>
+    <div>
+      <label for="usernameInput">Username</label>
+      <input type="text" id="usernameInput" autocomplete="username" />
+    </div>
+    <div>
+      <label for="passwordInput">Password</label>
+      <input type="password" id="passwordInput" autocomplete="current-password" />
+    </div>
+    <button id="loginBtn">Login</button>
+    <button id="registerBtn" style="display:none;">Register</button>
+    <div class="message" id="loginMessage"></div>
+    <div class="switch-link" id="switchMode">Don't have an account? Register</div>
+  </div>
+  <script>
+// filepath: c:\Users\vanti\Documents\MongoDB\templates\login.html (inline)
+const apiBaseURL = "http://localhost:5000";
+const usernameInput = document.getElementById("usernameInput");
+const passwordInput = document.getElementById("passwordInput");
+const loginBtn = document.getElementById("loginBtn");
+const registerBtn = document.getElementById("registerBtn");
+const loginMessage = document.getElementById("loginMessage");
+const switchMode = document.getElementById("switchMode");
+const loginTitle = document.getElementById("loginTitle");
+
+let mode = "login"; // or "register"
+
+function showMsg(msg, isError=true) {
+  loginMessage.textContent = msg;
+  loginMessage.style.color = isError ? "#d33" : "#2f5d32";
+}
+
+switchMode.onclick = function() {
+  if (mode === "login") {
+    mode = "register";
+    loginTitle.textContent = "Register";
+    loginBtn.style.display = "none";
+    registerBtn.style.display = "block";
+    switchMode.textContent = "Already have an account? Login";
+    showMsg("");
+  } else {
+    mode = "login";
+    loginTitle.textContent = "Login";
+    loginBtn.style.display = "block";
+    registerBtn.style.display = "none";
+    switchMode.textContent = "Don't have an account? Register";
+    showMsg("");
+  }
+};
+
+loginBtn.onclick = async function() {
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value;
+  if (!username || !password) {
+    showMsg("Username and password required.");
+    return;
+  }
+  try {
+    const res = await fetch(apiBaseURL + "/login", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({username, password})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showMsg(data.error || "Login failed.");
+      return;
+    }
+    // Save user info and token
+    localStorage.setItem("user", JSON.stringify({token: data.token, username: data.username, user_id: data.user_id}));
+    window.location.href = "index.html";
+  } catch (err) {
+    showMsg("Network error.");
+  }
+};
+
+registerBtn.onclick = async function() {
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value;
+  if (!username || !password) {
+    showMsg("Username and password required.");
+    return;
+  }
+  try {
+    const res = await fetch(apiBaseURL + "/register", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({username, password})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showMsg(data.error || "Registration failed.");
+      return;
+    }
+    showMsg("Registration successful! Please login.", false);
+    mode = "login";
+    loginTitle.textContent = "Login";
+    loginBtn.style.display = "block";
+    registerBtn.style.display = "none";
+    switchMode.textContent = "Don't have an account? Register";
+  } catch (err) {
+    showMsg("Network error.");
+  }
+};
+  </script>
+</body>
+</html>
