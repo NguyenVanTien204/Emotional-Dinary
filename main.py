@@ -2,11 +2,14 @@ from flask import Flask, request, jsonify, render_template
 from flask_pymongo import PyMongo
 from bson.objectid import ObjectId
 from bson.json_util import dumps
-import datetime
 from flask_cors import CORS
-import jwt  
-import hashlib
+
+from collections import Counter
+import datetime
+import re
 import os
+
+from utils import hash_password, generate_token, decode_token, get_current_user, entry_to_json, classify_sentiment, get_random_icon
 
 app = Flask(__name__)
 CORS(app)
@@ -16,23 +19,7 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "supersecretkey")
 mongo = PyMongo(app)
 entries_collection = mongo.db.entries
 users_collection = mongo.db.users
-
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
-
-def generate_token(user_id, username):
-    token = jwt.encode({"user_id": str(user_id), "username": username}, app.config["SECRET_KEY"], algorithm="HS256")
-    # PyJWT >= 2.x returns str, <2.x returns bytes
-    if isinstance(token, bytes):
-        token = token.decode("utf-8")
-    return token
-
-def decode_token(token):
-    try:
-        return jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
-    except Exception:
-        return None
-
+#============================================================================================
 @app.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
@@ -48,7 +35,7 @@ def register():
     }
     result = users_collection.insert_one(user)
     return jsonify({"message": "User registered"}), 201
-
+#============================================================================================
 @app.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
