@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Emotional Diary with Calendar</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <button id="chartsBtn" class="btn btn-chart" style="margin-right:10px;">Analytics</button>
+        <div id="userBar" style="text-align:right;">
+          <span id="welcomeUser"></span>
+          <button id="logoutBtn" class="btn btn-cancel" style="margin-left:10px;">Logout</button>
+        </div>
+      </div>
+      <h1>Emotional Diary</h1>
+    </header>
+
+    <section id="calendar">
+      <header>
+        <button id="prevMonthBtn" aria-label="Previous month">&lt;</button>
+        <h2 id="calendarMonthYear">Month Year</h2>
+        <button id="nextMonthBtn" aria-label="Next month">&gt;</button>
+      </header>
+      <table aria-label="Diary calendar">
+        <thead>
+          <tr>
+            <th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
+          </tr>
+        </thead>
+        <tbody id="calendarBody">
+          <!-- calendar dates -->
+        </tbody>
+      </table>
+      <button id="filterResetBtn" style="display:none;">Calendar</button>
+    </section>
+
+    <section id="entries">
+      <!-- Diary entries inserted here dynamically -->
+    </section>
+
+    <form id="entryForm">
+      <h2 id="formTitle">Add New Entry</h2>
+      <div>
+        <label for="dateInput">Date</label>
+        <input type="date" id="dateInput" required />
+      </div>
+      <div>
+        <label for="contentInput">Diary Entry</label>
+        <textarea id="contentInput" placeholder="Write about your day..." required></textarea>
+      </div>
+      <div>
+        <label for="emotionsInput">Emotions (comma separated)</label>
+        <input type="text" id="emotionsInput" placeholder="Sad, Happy, Anxious, etc." />
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-submit">Save Entry</button>
+        <button type="button" class="btn btn-cancel" id="cancelEditBtn" style="display:none;">Cancel</button>
+      </div>
+      <div class="message" id="formMessage"></div>
+    </form>
+  </div>
+<script src="script.js"></script>
+<script>
+// filepath: c:\Users\vanti\Documents\MongoDB\templates\index.html (inline auth check)
+document.addEventListener("DOMContentLoaded", function() {
+  // Check login
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (!user || !user.token) {
+    window.location.href = "login.html";
+    return;
+  }
+  document.getElementById("welcomeUser").textContent = "Hello, " + user.username;
+  document.getElementById("logoutBtn").onclick = function() {
+    localStorage.removeItem("user");
+    window.location.href = "login.html";
+  };
+  document.getElementById("chartsBtn").onclick = function() {
+    window.location.href = "charts.html";
+  };
+});
+</script>
+</body>
+</html>
