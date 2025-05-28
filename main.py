@@ -191,5 +191,166 @@ def delete_entry(entry_id):
         return jsonify({"error": "Entry not found"}), 404
     return jsonify({"message": "Entry deleted"}), 200
 
+#============================================================================================
+@app.route("/emotions/stats", methods=["GET"])
+def get_emotion_stats():
+    """
+    API trả về tổng số lần xuất hiện từng loại cảm xúc trong last week/last month/last year.
+    """
+    user = get_current_user(users_collection)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+    user_id = str(user["_id"])
+    req_user_id = request.args.get("user_id", user_id)
+    period = request.args.get("period", "month")  # default: month
+
+    now = datetime.datetime.now()
+    if period == "week":
+        start_date = now - datetime.timedelta(days=7)
+    elif period == "month":
+        start_date = now - datetime.timedelta(days=30)
+    elif period == "year":
+        start_date = now - datetime.timedelta(days=365)
+    else:
+        start_date = now - datetime.timedelta(days=30)
+
+    # Sử dụng aggregation pipeline để join emotion với entries và lọc theo ngày
+    pipeline = [
+        {
+            "$match": {
+                "user_id": ObjectId(req_user_id)
+            }
+        },
+        {
+            "$lookup": {
+                "from": "entries",
+                "localField": "entry_id",
+                "foreignField": "_id",
+                "as": "entry"
+            }
+        },
+        {
+            "$unwind": "$entry"
+        },
+        {
+            "$addFields": {
+                "entry_date": {
+                    "$dateFromString": {
+                        "dateString": "$entry.date",
+                        "format": "%Y-%m-%d"
+                    }
+                }
+            }
+        },
+        {
+            "$match": {
+                "entry_date": {"$gte": start_date}
+            }
+        },
+        {
+            "$group": {
+                "_id": "$sentiment",
+                "count": {"$sum": 1}
+            }
+        }
+    ]
+
+    emotion_col = mongo.db.emotion
+    agg_result = list(emotion_col.aggregate(pipeline))
+
+    # Đảm bảo đủ 3 loại cảm xúc
+    all_sentiments = ["positive", "neutral", "negative"]
+    sentiment_counter = {s: 0 for s in all_sentiments}
+    for item in agg_result:
+        sentiment = item["_id"]
+        if sentiment in sentiment_counter:
+            sentiment_counter[sentiment] = item["count"]
+
+    data = [sentiment_counter[s] for s in all_sentiments]
+
+    result = {
+        "labels": [s.capitalize() for s in all_sentiments],
+        "datasets": [{
+            "label": "Emotion Count",
+            "data": data,
+            "backgroundColor": ["#81c784", "#fff176", "#e57373"]
+        }]
+    }
+    return jsonify(result), 200
+#=========================================================================================
+@app.route("/entries/negative-insights", methods=["GET"])
+def negative_insights():
+    """
+    Phân tích tiêu cực: 
+    - Trả về danh sách entry chứa từ tiêu cực.
+    - Thống kê số entry tiêu cực, tổng số entry, tỷ lệ tiêu cực (%).
+    - Wordcloud các từ tiêu cực xuất hiện nhiều nhất.
+    - Thống kê top từ tiêu cực lặp lại nhiều nhất.
+    """
+    user = get_current_user(users_collection)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+    user_id = str(user["_id"])
+    req_user_id = request.args.get("user_id", user_id)
+
+    NEGATIVE_KEYWORDS = [
+        "lonely", "tired", "surviving", "vulnerable", "numb", "anxious", 
+        "lost", "fragile", "hurt", "grief", "sadness", "not okay", "hopeless",
+        "empty", "broken", "afraid", "pain", "regret", "guilty", "worthless",
+        "buồn", "chán", "mệt", "stress", "lo lắng", "cô đơn", "tức giận", "thất vọng", "khó chịu", "khóc", "đau", "sợ", "áp lực", "bực", "tệ", "không vui", "không ổn", "không tốt", "bỏ cuộc", "thua", "ghét", "không thích"
+    ]
+
+    regex_list = [{"content": {"$regex": kw, "$options": "i"}} for kw in NEGATIVE_KEYWORDS]
+    regex_list += [{"emotions": {"$regex": kw, "$options": "i"}} for kw in NEGATIVE_KEYWORDS]
+
+    query = {
+        "user_id": ObjectId(req_user_id),
+        "$or": regex_list
+    }
+
+    all_entries = list(entries_collection.find({"user_id": ObjectId(req_user_id)}))
+    negative_entries = list(entries_collection.find(query))
+    entry_list = [entry_to_json(e) for e in negative_entries]
+
+    # Wordcloud cho các entry tiêu cực
+    words = []
+    for e in negative_entries:
+        content = e.get("content", "")
+        words += re.findall(r'\b\w+\b', content.lower())
+        if isinstance(e.get("emotions", None), list):
+            words += [em.lower() for em in e["emotions"] if isinstance(em, str)]
+    stopwords = set([
+        "the", "and", "is", "a", "of", "to", "in", "it", "for", "on", "with", "as", "at", "by", "an", "be", "this", "that", "i", "you", "he", "she", "we", "they", "was", "were", "are", "am", "but", "or", "not", "so", "if", "from", "my", "your", "his", "her", "their", "our", "me", "him", "them", "us"
+    ])
+    filtered_words = [w for w in words if w not in stopwords and len(w) > 2]
+    word_freq = Counter(filtered_words)
+    wordcloud = [{"text": w, "value": c} for w, c in word_freq.most_common(50)]
+
+    # Thống kê số entry tiêu cực, tổng số entry, tỷ lệ
+    total_entries = len(all_entries)
+    negative_count = len(negative_entries)
+    negative_ratio = round(negative_count / total_entries * 100, 2) if total_entries else 0
+
+    # Thống kê top từ tiêu cực lặp lại nhiều nhất trong các entry tiêu cực
+    negative_word_counts = {kw: 0 for kw in NEGATIVE_KEYWORDS}
+    for e in negative_entries:
+        text = (e.get("content", "") + " " + " ".join(e.get("emotions", []))).lower()
+        for kw in NEGATIVE_KEYWORDS:
+            if kw in text:
+                negative_word_counts[kw] += text.count(kw)
+    top_negative_words = sorted(
+        [{"keyword": k, "count": v} for k, v in negative_word_counts.items() if v > 0],
+        key=lambda x: x["count"], reverse=True
+    )[:10]
+
+    return jsonify({
+        "entries": entry_list,
+        "wordcloud": wordcloud,
+        "negative_count": negative_count,
+        "total_entries": total_entries,
+        "negative_ratio": negative_ratio,
+        "top_negative_words": top_negative_words
+    }), 200
+
 if __name__ == "__main__":
     app.run(debug=True)
