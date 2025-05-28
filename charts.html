@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diary Analytics</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="charts.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-actions">
+                <button id="backBtn" class="btn btn-cancel">Back to Diary</button>
+                <div id="userBar">
+                    <span id="welcomeUser"></span>
+                    <button id="logoutBtn" class="btn btn-cancel">Logout</button>
+                </div>
+            </div>
+            <h1>Diary Analytics</h1>
+        </header>
+
+        <div class="charts-container">
+            <div class="chart-tabs">
+                <button id="tabChart" class="chart-tab active">Charts</button>
+                <button id="tabSearch" class="chart-tab">Negative Wordcount</button>
+            </div>
+            <section id="emotionFrequencySection" class="chart-section active">
+                <h2>Emotion Frequency</h2>
+                <div class="chart-controls">
+                    <select id="periodSelect" class="period-select">
+                        <option value="week">Last Week</option>
+                        <option value="month">Last Month</option>
+                        <option value="year">Last Year</option>
+                    </select>
+                    <div id="loadingIndicator" style="display: none;">Loading...</div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="frequencyChart"></canvas>
+                </div>
+                <div class="chart-summary">
+                    <div class="summary-card positive">
+                        <h3>Positive</h3>
+                        <p id="positiveCount">0</p>
+                    </div>
+                    <div class="summary-card neutral">
+                        <h3>Neutral</h3>
+                        <p id="neutralCount">0</p>
+                    </div>
+                    <div class="summary-card negative">
+                        <h3>Negative</h3>
+                        <p id="negativeCount">0</p>
+                    </div>
+                </div>
+            </section>
+            <section id="searchSection" class="chart-section">
+                <h2>Negative Words</h2>
+                <!-- Pie chart sẽ được JS tự động chèn vào phía trên -->
+                <div id="searchResults" style="margin-bottom:20px;"></div>
+                <div id="wordcloud" style="min-height:60px;padding:10px 0;"></div>
+            </section>
+        </div>
+    </div>
+    <script src="charts.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (!user || !user.token) {
+                window.location.href = 'login.html';
+                return;
+            }
+            document.getElementById('welcomeUser').textContent = 'Hello, ' + user.username;
+            document.getElementById('backBtn').onclick = () => window.location.href = 'index.html';
+            document.getElementById('logoutBtn').onclick = () => {
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+            };
+        });
+    </script>
+</body>
+</html>
