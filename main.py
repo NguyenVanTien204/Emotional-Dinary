@@ -190,12 +190,41 @@ def delete_entry(entry_id):
     if result.deleted_count == 0:
         return jsonify({"error": "Entry not found"}), 404
     return jsonify({"message": "Entry deleted"}), 200
-
+#============================================================================================
+@app.route("/")
+def home():
+    return render_template("login.html")
+#============================================================================================
+@app.route("/emotions", methods=["GET"])
+def get_emotions():
+    user = get_current_user(users_collection)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+    user_id = str(user["_id"])
+    req_user_id = request.args.get("user_id", user_id)
+    emotion_col = mongo.db.emotion
+    emotions = list(emotion_col.find({"user_id": ObjectId(req_user_id)}))
+    entries = list(entries_collection.find({"user_id": ObjectId(req_user_id)}))
+    entry_id_to_date = {str(e["_id"]): e["date"] for e in entries}
+    result = []
+    for emo in emotions:
+        item = {
+            "entry_id": str(emo.get("entry_id")),
+            "sentiment": emo.get("sentiment", ""),
+            "icon": emo.get("icon", "")
+        }
+        entry_id = str(emo.get("entry_id"))
+        if entry_id in entry_id_to_date:
+            item["date"] = entry_id_to_date[entry_id]
+        result.append(item)
+    return jsonify(result), 200
 #============================================================================================
 @app.route("/emotions/stats", methods=["GET"])
 def get_emotion_stats():
     """
     API trả về tổng số lần xuất hiện từng loại cảm xúc trong last week/last month/last year.
+    Tham số:
+        - period: 'week', 'month', 'year'
     """
     user = get_current_user(users_collection)
     if not user:
@@ -277,7 +306,69 @@ def get_emotion_stats():
         }]
     }
     return jsonify(result), 200
-#=========================================================================================
+#============================================================================================
+@app.route("/emotions/<entry_id>/icon", methods=["PUT"])
+def update_emotion_icon(entry_id):
+    user = get_current_user(users_collection)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.get_json()
+    icon = data.get("icon")
+    if not icon:
+        return jsonify({"error": "No icon provided"}), 400
+    emotion_col = mongo.db.emotion
+    result = emotion_col.update_one(
+        {"user_id": user["_id"], "entry_id": ObjectId(entry_id)},
+        {"$set": {"icon": icon}}
+    )
+    if result.matched_count == 0:
+        return jsonify({"error": "Emotion not found"}), 404
+    return jsonify({"message": "Icon updated"}), 200
+#============================================================================================
+@app.route("/entries/search", methods=["GET"])
+def search_entries():
+    """
+    Tìm kiếm entry theo keyword, trả về danh sách entries và wordcloud.
+    Query params:
+        - q: từ khóa tìm kiếm
+    """
+    user = get_current_user(users_collection)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+    user_id = str(user["_id"])
+    req_user_id = request.args.get("user_id", user_id)
+    keyword = request.args.get("q", "").strip()
+    if not keyword:
+        return jsonify({"error": "No keyword provided"}), 400
+
+    # Đảm bảo đã tạo text index trên content: db.entries.createIndex({content: "text"})
+    query = {
+        "user_id": ObjectId(req_user_id),
+        "$text": {"$search": keyword}
+    }
+    projection = {"score": {"$meta": "textScore"}}
+    entries = list(entries_collection.find(query, projection).sort([("score", {"$meta": "textScore"})]))
+    entry_list = [entry_to_json(e) for e in entries]
+
+    # Tạo wordcloud: đếm tần suất các từ xuất hiện trong các entry tìm được
+    from collections import Counter
+    import re
+    words = []
+    for e in entries:
+        content = e.get("content", "")
+        # Tách từ, loại bỏ ký tự đặc biệt, chuyển về lower
+        words += re.findall(r'\b\w+\b', content.lower())
+    # Loại bỏ stopwords đơn giản
+    stopwords = set(["the", "and", "is", "a", "of", "to", "in", "it", "for", "on", "with", "as", "at", "by", "an", "be", "this", "that", "i", "you", "he", "she", "we", "they", "was", "were", "are", "am", "but", "or", "not", "so", "if", "from", "my", "your", "his", "her", "their", "our", "me", "him", "them", "us"])
+    filtered_words = [w for w in words if w not in stopwords and len(w) > 2]
+    word_freq = Counter(filtered_words)
+    wordcloud = [{"text": w, "value": c} for w, c in word_freq.most_common(50)]
+
+    return jsonify({
+        "entries": entry_list,
+        "wordcloud": wordcloud
+    }), 200
+#============================================================================================
 @app.route("/entries/negative-insights", methods=["GET"])
 def negative_insights():
     """
@@ -354,3 +445,4 @@ def negative_insights():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
