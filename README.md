@@ -55,13 +55,18 @@ A web-based diary application with emotion tracking, calendar, and advanced anal
 backend/
   main.py
   utils.py
-  ...
+  analysis_static.py
 templates/
+  login.html
   index.html
   charts.html
-  charts.js
-  charts.css
-  ...
+static/
+  css/
+   charts.css
+   style.css
+  js/
+   charts.js
+   script.js
 README.md
 ```
 
