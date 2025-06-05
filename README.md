@@ -51,7 +51,7 @@ A web-based diary application with emotion tracking, calendar, and advanced anal
 
 1. **Clone the repository:**
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/NguyenTien204/Emotional-Dinary.git
    cd MongoDB
    ```
 
