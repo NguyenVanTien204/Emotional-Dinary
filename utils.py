@@ -40,6 +40,7 @@ def entry_to_json(entry):
         "emotions": entry["emotions"],
         "user_id": str(entry["user_id"])
     }
+
 def classify_sentiment(text):
     blob = TextBlob(text)
     polarity = blob.sentiment.polarity
@@ -49,3 +50,13 @@ def classify_sentiment(text):
         return "negative"
     else:
         return "neutral"
+
+# Icon sets for each sentiment
+ICON_SETS = {
+    "positive": ["😊", "😃", "😁", "😄", "🥳", "😸", "😺", "😻", "😇", "🤩"],
+    "neutral": ["😐", "😶", "😑", "🤔", "🧐", "😏", "😬", "😴", "😌", "😕"],
+    "negative": [ "😢", "😞", "😠", "😭", "😔", "😡", "😩", "😫", "😣", "😖"]
+}
+
+def get_random_icon(sentiment):
+    return random.choice(ICON_SETS.get(sentiment, ICON_SETS["neutral"]))

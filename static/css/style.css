@@ -1,0 +1,389 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;600&display=swap');
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #d4fc79, #96e6a1);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+.container {
+  background: #ffffffdd;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  border-radius: 15px;
+  max-width: 900px;
+  width: 100%;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+header {
+  text-align: center;
+}
+header h1 {
+  margin: 0;
+  font-weight: 700;
+  color: #1e4d4d;
+  font-size: 2.8rem;
+  text-shadow: 1px 2px 12px #b2dfdb;
+  letter-spacing: 1px;
+}
+/* Calendar styles */
+#calendar {
+  background: #f6fff8;
+  padding: 15px 20px;
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(30, 77, 77, 0.10);
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+#calendar header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  background: none;
+}
+#calendar header h2 {
+  margin: 0;
+  color: #1e4d4d;
+  font-weight: 700;
+  font-size: 1.45rem;
+  letter-spacing: 0.5px;
+  background: linear-gradient(90deg, #b7e7e1 30%, #78b8ef 100%);
+  padding: 6px 22px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #b7e7e144;
+  border: 2px solid #4fc3f7;
+  display: inline-block;
+}
+#calendar button {
+  background: linear-gradient(135deg, #4fc3f7 60%, #3ad29f 100%);
+  border: none;
+  padding: 8px 18px;
+  border-radius: 16px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px #4fc3f733;
+  transition: background 0.22s, box-shadow 0.22s, transform 0.14s;
+  outline: none;
+}
+#calendar button:hover, #calendar button:focus {
+  background: linear-gradient(135deg, #3ad29f 60%, #4fc3f7 100%);
+  box-shadow: 0 4px 16px #3ad29f44;
+  transform: translateY(-2px) scale(1.04);
+}
+#calendar table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 8px 10px; /* spacing giữa các ô */
+  table-layout: fixed;
+}
+#calendar th, #calendar td {
+  text-align: center;
+  font-weight: 600;
+  color: #2f5130;
+  /* width: 1/7*100%; */
+  padding: 0;
+}
+#calendar th {
+  border-bottom: 2px solid #b7e7e1;
+  font-size: 1.05rem;
+  height: 36px;
+  background: linear-gradient(90deg, #e3f7fa 60%, #eafbe7 100%);
+  border-radius: 10px;
+  color: #1976d2;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  box-shadow: 0 1px 4px #b7e7e144;
+}
+#calendar td {
+  height: 60px;
+  min-width: 60px;
+  width: 14.28%;
+  vertical-align: top;
+  border-radius: 16px;
+  position: relative;
+  cursor: pointer;
+  background: #f3f8f6;
+  box-shadow: 0 2px 8px rgba(60, 180, 80, 0.06);
+  transition: all 0.3s ease;
+  font-size: 1.08rem;
+  font-weight: 500;
+  z-index: 1;
+  border: 2px solid transparent;
+  padding: 8px;
+  text-align: left;
+}
+#calendar td:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(60, 180, 80, 0.15);
+}
+.calendar-icon-overlay {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 1.2em;
+  text-shadow: 1px 1px 2px rgba(255,255,255,0.9);
+  z-index: 5;
+  pointer-events: none;
+  opacity: 1;
+  transition: transform 0.2s ease-in-out, opacity 0.3s ease-in-out;
+  padding: 2px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+}
+#calendar td:hover .calendar-icon-overlay {
+  transform: scale(1.2);
+}
+#calendar td.has-entry {
+  background: linear-gradient(135deg, var(--entry-bg-color, #e0f7e9) 60%, #f3f8f6 100%);
+  color: var(--entry-text-color, #388e3c);
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(60, 180, 80, 0.10);
+}
+#calendar td.selected {
+  background: linear-gradient(135deg, #ffd6e0 60%, #e7c7b7 100%);
+  color: #b71c1c;
+  border: 3px solid #ff6f91;
+  box-shadow: 0 0 0 3px #ff6f9133, 0 8px 24px #ff6f9144;
+  font-weight: 800;
+  z-index: 3;
+  transform: scale(1.05);
+}
+#calendar td.today {
+  border: 3px solid #4fc3f7;
+  background: linear-gradient(135deg, #e3f7fa 60%, #e0f7e9 100%);
+  color: #1976d2;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px #4fc3f733;
+  z-index: 2;
+}
+
+/* Màu gradient cho từng trạng thái */
+#calendar td[data-sentiment="positive"] {
+  --entry-bg-color: #e3f7e7;
+  --entry-text-color: #2e7d32;
+}
+
+#calendar td[data-sentiment="neutral"] {
+  --entry-bg-color: #fff8e1;
+  --entry-text-color: #f57c00;
+}
+
+#calendar td[data-sentiment="negative"] {
+  --entry-bg-color: #ffebee;
+  --entry-text-color: #c62828;
+}
+#calendar tbody {
+  transition: opacity 0.35s;
+}
+/* Filter reset link */
+#filterResetBtn {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: #3c7d36;
+  cursor: pointer;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  text-decoration: underline;
+}
+#filterResetBtn:hover {
+  color: #2c5a23;
+}
+
+#entries {
+  display: none; /* Hide by default, show on day click */
+  grid-template-columns: repeat(auto-fill,minmax(270px,1fr));
+  gap: 20px;
+}
+.entry-card {
+  background: #f6fff8;
+  border-radius: 12px;
+  padding: 15px 20px;
+  box-shadow: 0 4px 10px rgba(50, 150, 100, 0.1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.entry-card h3 {
+  margin: 0;
+  color: #2f5233;
+  font-weight: 600;
+}
+.entry-date {
+  font-size: 0.9rem;
+  color: #757575;
+}
+.entry-content {
+  font-size: 1rem;
+  color: #3a3a3a;
+}
+.entry-emotions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.emotion-tag {
+  background: #a3d9a5;
+  color: #1f3d21;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  user-select: none;
+}
+.entry-actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.btn {
+  cursor: pointer;
+  border: none;
+  font-weight: 700;
+  padding: 8px 18px;
+  border-radius: 22px;
+  transition: background 0.22s, box-shadow 0.22s, color 0.18s, transform 0.13s;
+  user-select: none;
+  font-size: 1.05rem;
+  box-shadow: 0 2px 8px #4fc3f733;
+  outline: none;
+}
+.btn-edit {
+  background: linear-gradient(135deg, #4fc3f7 60%, #3ad29f 100%);
+  color: #fff;
+}
+.btn-edit:hover, .btn-edit:focus {
+  background: linear-gradient(135deg, #3ad29f 60%, #4fc3f7 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px #3ad29f44;
+  transform: translateY(-2px) scale(1.04);
+}
+.btn-delete {
+  background: linear-gradient(135deg, #ff6f91 60%, #ffd6e0 100%);
+  color: #b71c1c;
+}
+.btn-delete:hover, .btn-delete:focus {
+  background: linear-gradient(135deg, #ffd6e0 60%, #ff6f91 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px #ff6f9144;
+  transform: translateY(-2px) scale(1.04);
+}
+.btn-submit {
+  background: linear-gradient(135deg, #3ad29f 60%, #4fc3f7 100%);
+  color: white;
+  padding: 10px 28px;
+  border-radius: 22px;
+  font-weight: 800;
+  font-size: 1.08rem;
+  box-shadow: 0 2px 8px #3ad29f33;
+}
+.btn-submit:hover, .btn-submit:focus {
+  background: linear-gradient(135deg, #4fc3f7 60%, #3ad29f 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px #3ad29f44;
+  transform: translateY(-2px) scale(1.04);
+}
+.btn-cancel {
+  background: linear-gradient(135deg, #b7e7e1 60%, #ffe9b0 100%);
+  color: #1e4d4d;
+  padding: 10px 22px;
+  border-radius: 22px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  box-shadow: 0 2px 8px #b7e7e133;
+}
+.btn-cancel:hover, .btn-cancel:focus {
+  background: linear-gradient(135deg, #ffe9b0 60%, #b7e7e1 100%);
+  color: #388e3c;
+  box-shadow: 0 4px 16px #b7e7e144;
+  transform: translateY(-2px) scale(1.04);
+}
+.btn-chart {
+  background: linear-gradient(135deg, #ffe9b0 0%, #ed60a9 100%);
+  color: #1976d2;
+  font-weight: 800;
+  border: none;
+  box-shadow: 0 2px 8px #4fc3f733;
+  font-size: 1.08rem;
+  padding: 8px 20px;
+  border-radius: 22px;
+  transition: background 0.22s, color 0.18s, box-shadow 0.18s, transform 0.13s;
+}
+.btn-chart:hover, .btn-chart:focus {
+  background: linear-gradient(135deg, #4fc3f7 60%, #ffe9b0 100%);
+  color: #b71c1c;
+  box-shadow: 0 4px 16px #4fc3f744;
+  transform: translateY(-2px) scale(1.04);
+}
+
+form {
+  background: #e6f0e7;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 14px rgba(50, 130, 80, 0.15);
+  display: none; /* Hide form by default */
+}
+form h2 {
+  margin: 0 0 10px 0;
+  font-weight: 600;
+  color: #2d5d31;
+}
+label {
+  font-weight: 600;
+  color: #2f5331;
+  margin-bottom: 6px;
+  display: block;
+}
+input[type="date"],
+textarea,
+input[type="text"] {
+  width: 100%;
+  font-size: 1rem;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 2px solid #a5cca8;
+  background: #fefefc;
+  resize: vertical;
+  transition: border-color 0.3s ease;
+  box-sizing: border-box;
+}
+input[type="date"]:focus,
+textarea:focus,
+input[type="text"]:focus {
+  outline: none;
+  border-color: #6fb64a;
+}
+textarea {
+  min-height: 80px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+}
+.message {
+  text-align: center;
+  font-weight: 600;
+  color: #2f5d32;
+  min-height: 1.2em;
+}
+
+
+@media (max-width: 600px) {
+  .container {
+    padding: 20px 15px;
+  }
+  #entries {
+    grid-template-columns: 1fr;
+  }
+}

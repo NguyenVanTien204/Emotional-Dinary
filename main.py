@@ -11,7 +11,10 @@ import os
 
 from utils import hash_password, generate_token, decode_token, get_current_user, entry_to_json, classify_sentiment, get_random_icon
 
-app = Flask(__name__)
+# Định nghĩa đường dẫn tới thư mục templates và static
+template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
+static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static'))
+app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 CORS(app)
 
 app.config["MONGO_URI"] = "mongodb://localhost:27017/emotional_diary_db"
@@ -104,9 +107,8 @@ def get_all_entries():
     user = get_current_user(users_collection)
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
-    user_id = str(user["_id"])
-    req_user_id = request.args.get("user_id", user_id)
-    entries = entries_collection.find({"user_id": ObjectId(req_user_id)}).sort("date", -1)
+    # Chỉ cho phép lấy entries của chính user đó
+    entries = entries_collection.find({"user_id": user["_id"]}).sort("date", -1)
     all_entries = [entry_to_json(entry) for entry in entries]
     return jsonify(all_entries), 200
 #============================================================================================
@@ -183,7 +185,7 @@ def delete_entry(entry_id):
     if not entry or entry["user_id"] != user["_id"]:
         return jsonify({"error": "Entry not found or unauthorized"}), 404
     result = entries_collection.delete_one({"_id": ObjectId(entry_id)})
-    # --- XÓA DỮ LIỆU PHÂN TÍCH CẢM XÚC LIÊN QUAN ---
+    # --- XÓA DỮ LIỆU PHÂN XÍCH CẢM XÚC LIÊN QUAN ---
     emotion_col = mongo.db.emotion
     emotion_col.delete_one({"user_id": user["_id"], "entry_id": ObjectId(entry_id)})
     # --- KẾT THÚC XÓA ---
@@ -194,17 +196,25 @@ def delete_entry(entry_id):
 @app.route("/")
 def home():
     return render_template("login.html")
+
+@app.route("/diary")
+def diary():
+    return render_template("index.html")
+
+@app.route("/charts")
+def charts():
+    return render_template("charts.html")
+
 #============================================================================================
 @app.route("/emotions", methods=["GET"])
 def get_emotions():
     user = get_current_user(users_collection)
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
-    user_id = str(user["_id"])
-    req_user_id = request.args.get("user_id", user_id)
     emotion_col = mongo.db.emotion
-    emotions = list(emotion_col.find({"user_id": ObjectId(req_user_id)}))
-    entries = list(entries_collection.find({"user_id": ObjectId(req_user_id)}))
+    # Chỉ lấy emotions của user hiện tại
+    emotions = list(emotion_col.find({"user_id": user["_id"]}))
+    entries = list(entries_collection.find({"user_id": user["_id"]}))
     entry_id_to_date = {str(e["_id"]): e["date"] for e in entries}
     result = []
     for emo in emotions:
@@ -218,6 +228,7 @@ def get_emotions():
             item["date"] = entry_id_to_date[entry_id]
         result.append(item)
     return jsonify(result), 200
+
 #============================================================================================
 @app.route("/emotions/stats", methods=["GET"])
 def get_emotion_stats():
@@ -229,8 +240,6 @@ def get_emotion_stats():
     user = get_current_user(users_collection)
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
-    user_id = str(user["_id"])
-    req_user_id = request.args.get("user_id", user_id)
     period = request.args.get("period", "month")  # default: month
 
     now = datetime.datetime.now()
@@ -247,7 +256,7 @@ def get_emotion_stats():
     pipeline = [
         {
             "$match": {
-                "user_id": ObjectId(req_user_id)
+                "user_id": user["_id"]
             }
         },
         {
@@ -335,15 +344,14 @@ def search_entries():
     user = get_current_user(users_collection)
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
-    user_id = str(user["_id"])
-    req_user_id = request.args.get("user_id", user_id)
+    
     keyword = request.args.get("q", "").strip()
     if not keyword:
         return jsonify({"error": "No keyword provided"}), 400
 
     # Đảm bảo đã tạo text index trên content: db.entries.createIndex({content: "text"})
     query = {
-        "user_id": ObjectId(req_user_id),
+        "user_id": user["_id"],
         "$text": {"$search": keyword}
     }
     projection = {"score": {"$meta": "textScore"}}
@@ -351,8 +359,6 @@ def search_entries():
     entry_list = [entry_to_json(e) for e in entries]
 
     # Tạo wordcloud: đếm tần suất các từ xuất hiện trong các entry tìm được
-    from collections import Counter
-    import re
     words = []
     for e in entries:
         content = e.get("content", "")
@@ -381,25 +387,25 @@ def negative_insights():
     user = get_current_user(users_collection)
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
-    user_id = str(user["_id"])
-    req_user_id = request.args.get("user_id", user_id)
 
     NEGATIVE_KEYWORDS = [
         "lonely", "tired", "surviving", "vulnerable", "numb", "anxious", 
         "lost", "fragile", "hurt", "grief", "sadness", "not okay", "hopeless",
         "empty", "broken", "afraid", "pain", "regret", "guilty", "worthless",
-        "buồn", "chán", "mệt", "stress", "lo lắng", "cô đơn", "tức giận", "thất vọng", "khó chịu", "khóc", "đau", "sợ", "áp lực", "bực", "tệ", "không vui", "không ổn", "không tốt", "bỏ cuộc", "thua", "ghét", "không thích"
+        "buồn", "chán", "mệt", "stress", "lo lắng", "cô đơn", "tức giận", "thất vọng", 
+        "khó chịu", "khóc", "đau", "sợ", "áp lực", "bực", "tệ", "không vui", 
+        "không ổn", "không tốt", "bỏ cuộc", "thua", "ghét", "không thích"
     ]
 
     regex_list = [{"content": {"$regex": kw, "$options": "i"}} for kw in NEGATIVE_KEYWORDS]
     regex_list += [{"emotions": {"$regex": kw, "$options": "i"}} for kw in NEGATIVE_KEYWORDS]
 
     query = {
-        "user_id": ObjectId(req_user_id),
+        "user_id": user["_id"],
         "$or": regex_list
     }
 
-    all_entries = list(entries_collection.find({"user_id": ObjectId(req_user_id)}))
+    all_entries = list(entries_collection.find({"user_id": user["_id"]}))
     negative_entries = list(entries_collection.find(query))
     entry_list = [entry_to_json(e) for e in negative_entries]
 
@@ -410,8 +416,13 @@ def negative_insights():
         words += re.findall(r'\b\w+\b', content.lower())
         if isinstance(e.get("emotions", None), list):
             words += [em.lower() for em in e["emotions"] if isinstance(em, str)]
+            
     stopwords = set([
-        "the", "and", "is", "a", "of", "to", "in", "it", "for", "on", "with", "as", "at", "by", "an", "be", "this", "that", "i", "you", "he", "she", "we", "they", "was", "were", "are", "am", "but", "or", "not", "so", "if", "from", "my", "your", "his", "her", "their", "our", "me", "him", "them", "us"
+        "the", "and", "is", "a", "of", "to", "in", "it", "for", "on", "with", 
+        "as", "at", "by", "an", "be", "this", "that", "i", "you", "he", "she", 
+        "we", "they", "was", "were", "are", "am", "but", "or", "not", "so", 
+        "if", "from", "my", "your", "his", "her", "their", "our", "me", "him", 
+        "them", "us"
     ])
     filtered_words = [w for w in words if w not in stopwords and len(w) > 2]
     word_freq = Counter(filtered_words)
@@ -429,6 +440,7 @@ def negative_insights():
         for kw in NEGATIVE_KEYWORDS:
             if kw in text:
                 negative_word_counts[kw] += text.count(kw)
+    
     top_negative_words = sorted(
         [{"keyword": k, "count": v} for k, v in negative_word_counts.items() if v > 0],
         key=lambda x: x["count"], reverse=True
