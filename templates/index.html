@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Emotional Diary with Calendar</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
   <div class="container">
@@ -63,23 +63,22 @@
       <div class="message" id="formMessage"></div>
     </form>
   </div>
-<script src="script.js"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
 <script>
 // filepath: c:\Users\vanti\Documents\MongoDB\templates\index.html (inline auth check)
 document.addEventListener("DOMContentLoaded", function() {
   // Check login
   const user = JSON.parse(localStorage.getItem("user"));
   if (!user || !user.token) {
-    window.location.href = "login.html";
+    window.location.href = "/";
     return;
   }
   document.getElementById("welcomeUser").textContent = "Hello, " + user.username;
   document.getElementById("logoutBtn").onclick = function() {
     localStorage.removeItem("user");
-    window.location.href = "login.html";
-  };
-  document.getElementById("chartsBtn").onclick = function() {
-    window.location.href = "charts.html";
+    window.location.href = "/";
+  };  document.getElementById("chartsBtn").onclick = function() {
+    window.location.href = "/charts";
   };
 });
 </script>
