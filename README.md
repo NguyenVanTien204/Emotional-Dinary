@@ -29,7 +29,7 @@ A web-based diary application with emotion tracking, calendar, and advanced anal
 
 2. **Install Python dependencies:**
    ```
-   pip install flask flask-pymongo flask-cors
+   To start develop: cd backend\Setup.\setup_dev.ps1
    ```
 
 3. **Start MongoDB:**  
