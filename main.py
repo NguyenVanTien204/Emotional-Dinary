@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, render_template
 from flask_pymongo import PyMongo
 from bson.objectid import ObjectId
@@ -12,7 +13,7 @@ import os
 from utils import hash_password, generate_token, decode_token, get_current_user, entry_to_json, classify_sentiment, get_random_icon
 
 # Định nghĩa đường dẫn tới thư mục templates và static
-template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
+template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates'))
 static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static'))
 app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 CORS(app)
